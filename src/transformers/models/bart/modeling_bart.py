@@ -165,8 +165,10 @@ def _prepare_bart_decoder_inputs(
     generation
     """
     pad_token_id = config.pad_token_id
+    bos_token_id = config.bos_token_id
+    eos_token_id = config.eos_token_id
     if decoder_input_ids is None:
-        decoder_input_ids = shift_tokens_right(input_ids, pad_token_id)
+        decoder_input_ids = shift_tokens_right(input_ids, bos_token_id, eos_token_id)
     bsz, tgt_len = decoder_input_ids.size()
     if decoder_padding_mask is None:
         decoder_padding_mask = make_padding_mask(decoder_input_ids, pad_token_id)
@@ -217,11 +219,11 @@ def _make_linear_from_emb(emb):
     return lin_layer
 
 
-def shift_tokens_right(input_ids, pad_token_id):
-    """Shift input ids one token to the right, and wrap the last non pad token (usually <eos>)."""
+def shift_tokens_right(input_ids, bos_token_id, eos_token_id):
+    """Shift input ids one token to the right"""
     prev_output_tokens = input_ids.clone()
-    index_of_eos = (input_ids.ne(pad_token_id).sum(dim=1) - 1).unsqueeze(-1)
-    prev_output_tokens[:, 0] = input_ids.gather(1, index_of_eos).squeeze()
+    # prev_output_tokens[:, 0].fill_(bos_token_id) # explicitly make 0th position of the decoder_input_ids bos
+    prev_output_tokens[:, 0].fill_(eos_token_id) # explicitly make 0th position of the decoder_input_ids eos
     prev_output_tokens[:, 1:] = input_ids[:, :-1]
     return prev_output_tokens
 
@@ -1030,7 +1032,7 @@ class BartForConditionalGeneration(PretrainedBartModel):
         if labels is not None:
             use_cache = False
             if decoder_input_ids is None:
-                decoder_input_ids = shift_tokens_right(labels, self.config.pad_token_id)
+                decoder_input_ids = shift_tokens_right(labels, self.config.bos_token_id, self.config.eos_token_id)
 
         outputs = self.model(
             input_ids,
