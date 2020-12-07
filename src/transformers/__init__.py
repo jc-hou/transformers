@@ -291,6 +291,7 @@ if is_torch_available():
         DataCollatorForWholeWordMask,
         DataCollatorWithPadding,
         default_data_collator,
+        DataCollatorForBartLanguageModeling,
     )
     from .data.datasets import (
         GlueDataset,
