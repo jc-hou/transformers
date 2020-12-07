@@ -680,6 +680,8 @@ class DataCollatorForBartLanguageModeling:
         for e in sep_token:
             mask = mask + (inputs_id == e)
         sep_index = torch.nonzero(mask).squeeze_(1)
+        if sep_index.nelement() == 0: # no sep_token detected in this example
+            return inputs_id
         sep_index = torch.cat((torch.tensor(0).unsqueeze(0), sep_index), 0) if sep_index[0]!=0 else sep_index
         sep_index = torch.cat((sep_index, torch.tensor(len(inputs_id)-1).unsqueeze(0)), 0) if sep_index[-1]!=len(inputs_id)-1 else sep_index
         sep_index_pair = torch.tensor([(x,y) for x,y in zip(sep_index[:-1], sep_index[1:])]).squeeze_(0)
